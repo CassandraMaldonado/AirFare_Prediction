@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
 
 def collect_inputs():
     """
@@ -202,9 +203,6 @@ def predict_prices(model, processed_inputs):
     Returns:
         list: List of flight options with predictions
     """
-    # Convert inputs to the format expected by the model
-    # For a real app, this would use the actual model prediction
-    
     # Create a feature vector that the model expects
     features = [
         processed_inputs['origin_encoded'],
@@ -214,49 +212,47 @@ def predict_prices(model, processed_inputs):
         processed_inputs['direct_flight'],
     ]
     
-    # For demonstration, we'll create some sample flights
-    # In a real app, you would use: predicted_price = model.predict([features])[0]
+    # Get base price from the actual model
     base_price = model.predict([features])[0]
     
-    # Create 3-5 flight options with slightly different prices
+    # Create flight options with real price prediction
     import random
-    num_flights = random.randint(3, 5)
-    
     airlines = ["American Airlines", "Delta", "United", "Southwest", "JetBlue", "Alaska"]
     aircraft = ["Boeing 737", "Airbus A320", "Boeing 787", "Airbus A380", "Embraer E190"]
     
+    # Create 3 flight options with slight price variations based on the model's prediction
     flights = []
     
-    for _ in range(num_flights):
-        # Vary price by up to 20%
-        price_variation = random.uniform(0.9, 1.1)
-        price = base_price * price_variation * processed_inputs['passengers']
+    for i in range(3):
+        # Apply a small variation to reflect different flight options
+        # Each subsequent option is slightly more expensive
+        price_factor = 1.0 + (i * 0.05)  # 0%, 5%, 10% increase
+        price = base_price * price_factor * processed_inputs['passengers']
         
-        # Generate departure time
-        hour = random.randint(6, 21)
-        minute = random.choice([0, 15, 30, 45])
-        departure_time = f"{hour:02d}:{minute:02d}"
+        # Create realistic departure times
+        morning_departure = "08:30" if i == 0 else "10:15"
+        afternoon_departure = "13:45" if i == 0 else "15:20"
+        evening_departure = "18:30" if i == 0 else "20:45"
+        departure_options = [morning_departure, afternoon_departure, evening_departure]
+        departure_time = departure_options[i % 3]
         
-        # Generate duration based on distance between cities
-        if abs(processed_inputs['origin_encoded'] - processed_inputs['destination_encoded']) <= 2:
-            # Short flight
-            hours = random.randint(1, 3)
-            minutes = random.randint(0, 59)
+        # Set duration based on distance
+        city_distance = abs(processed_inputs['origin_encoded'] - processed_inputs['destination_encoded'])
+        if city_distance <= 1:
+            duration = "1h 45m"
+        elif city_distance <= 3:
+            duration = "3h 15m"
         else:
-            # Long flight
-            hours = random.randint(3, 6)
-            minutes = random.randint(0, 59)
+            duration = "5h 30m"
         
-        duration = f"{hours}h {minutes}m"
-        
-        # Generate stops if not direct
+        # Set stops based on direct flight preference
         stops = "Direct"
-        if not processed_inputs['direct_flight']:
-            stops = random.choice(["Direct", "1 stop", "2 stops"])
+        if not processed_inputs['direct_flight'] and i > 0:
+            stops = "1 stop" if i == 1 else "2 stops"
         
         flights.append({
-            "airline": random.choice(airlines),
-            "aircraft": random.choice(aircraft),
+            "airline": airlines[i % len(airlines)],
+            "aircraft": aircraft[i % len(aircraft)],
             "departure_time": departure_time,
             "duration": duration,
             "stops": stops,
