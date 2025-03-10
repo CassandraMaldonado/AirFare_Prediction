@@ -12,10 +12,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Load the XGBoost model
+# Load the XGBoost model - only attempt to load the existing file, don't create a new one
 @st.cache_resource
 def load_model():
-    """Load the model with multiple fallback methods"""
+    """Load the XGBoost model with multiple fallback methods"""
     model_path = 'model/xg_boost_model_compressed.pkl'
     if not os.path.exists(model_path):
         st.error(f"Model file {model_path} not found.")
@@ -25,38 +25,11 @@ def load_model():
         # Method 1: Standard pickle
         with open(model_path, 'rb') as file:
             model = pickle.load(file)
+        st.success("Successfully loaded xg_boost_model_compressed.pkl")
         return model
     except Exception as e1:
-        st.warning(f"First loading attempt failed: {str(e1)}")
-        
-        try:
-            # Method 2: Try cPickle
-            import _pickle as cPickle
-            with open(model_path, 'rb') as file:
-                model = cPickle.load(file)
-            return model
-        except Exception as e2:
-            st.warning(f"Second loading attempt failed: {str(e2)}")
-            
-            # Method 3: Create a dummy model for testing
-            st.warning("Using fallback prediction mode (no model)")
-            return DummyModel()
-
-# Fallback model class that mimics XGBoost interface
-class DummyModel:
-    """Dummy model that provides random predictions when real model fails to load"""
-    def predict(self, X):
-        """Generate slightly random prices based on current price"""
-        # Get the current price from the input
-        if 'price' in X.columns:
-            base_price = X['price'].values[0]
-        else:
-            base_price = 500
-            
-        # Return a list with one prediction (5-10% price change)
-        import random
-        change = (random.random() * 0.05 + 0.95)  # 5-10% reduction
-        return np.array([base_price * change])
+        st.error(f"Error loading model: {str(e1)}")
+        return None
 
 def collect_inputs():
     """
@@ -176,7 +149,7 @@ def predict_prices_recursive(model, features_df, days=7):
     Predict flight prices recursively for the next n days
     
     Args:
-        model: Trained XGBoost model or dummy model
+        model: Trained XGBoost model
         features_df (pd.DataFrame): Current flight features
         days (int): Number of days to predict
         
@@ -187,6 +160,22 @@ def predict_prices_recursive(model, features_df, days=7):
     
     # Make a copy to avoid modifying the original
     df = features_df.copy()
+    current_price = df['price'].values[0]
+    
+    # Day of week mapping for reference
+    day_names = {
+        0: "Monday",
+        1: "Tuesday",
+        2: "Wednesday", 
+        3: "Thursday",
+        4: "Friday",
+        5: "Saturday",
+        6: "Sunday"
+    }
+    
+    # Show debug information in an expander
+    with st.expander("Price Prediction Details", expanded=False):
+        st.write(f"Starting price: ${current_price:.2f}")
     
     for i in range(days):
         # Update date-related features for the next day
@@ -204,21 +193,36 @@ def predict_prices_recursive(model, features_df, days=7):
                 if 'month' in df.columns:
                     df['month'] = df['month'] % 12 + 1
         
-        # Predict the next day's price
         try:
-            next_price = model.predict(df)[0]
+            # Predict the next day's price
+            next_price = float(model.predict(df)[0])
+            
+            # Show debug information in the expander
+            with st.expander("Price Prediction Details", expanded=False):
+                day_name = day_names.get(int(df['day_of_week'].values[0]), "Unknown")
+                price_change = ((next_price - df['price'].values[0]) / df['price'].values[0] * 100)
+                st.write(f"Day {i+1} ({day_name}): ${next_price:.2f}, Change: {price_change:.1f}%")
+            
+            # Add prediction to the list
+            predictions.append(next_price)
+            
+            # Update the price for the next iteration - this is the key part!
+            # We use today's prediction as tomorrow's input price
+            df['price'] = next_price
+            
         except Exception as e:
-            st.error(f"Prediction error: {e}")
-            # Fallback to simple logic: 2-4% price decrease
-            import random
-            current_price = df['price'].values[0]
-            change_factor = 1 - (random.random() * 0.02 + 0.02)  # 2-4% reduction
-            next_price = current_price * change_factor
-        
-        predictions.append(next_price)
-        
-        # Update the price for the next iteration
-        df['price'] = next_price
+            st.error(f"Prediction error on day {i+1}: {e}")
+            import traceback
+            st.text(traceback.format_exc())
+            
+            # Fallback if prediction fails
+            if i == 0:
+                next_price = current_price * 0.97  # 3% reduction for first day
+            else:
+                next_price = predictions[-1] * 0.97  # 3% reduction from previous day
+            
+            predictions.append(next_price)
+            df['price'] = next_price
     
     return predictions
 
@@ -227,11 +231,11 @@ def display_results(model, user_inputs):
     Display flight price prediction results.
     
     Args:
-        model: The trained model or dummy model
+        model: The trained XGBoost model
         user_inputs: User input dictionary
     """
     if model is None:
-        st.error("❌ Model not loaded. Please check if the model file exists.")
+        st.error("❌ Model not loaded. Please check if xg_boost_model_compressed.pkl exists.")
         return
     
     st.title("✈️ Flight Price Predictions")
@@ -255,7 +259,7 @@ def display_results(model, user_inputs):
     try:
         processed_inputs = preprocess_inputs(user_inputs)
         
-        with st.expander("Show processed features"):
+        with st.expander("View processed features"):
             st.dataframe(processed_inputs)
         
         # Make recursive predictions
@@ -290,9 +294,13 @@ def display_results(model, user_inputs):
         # Plot the prices
         st.line_chart(chart_data.set_index('Date'))
         
+        # Create day-of-week labels for the table
+        day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        date_labels = [f"{d.strftime('%b %d')} ({day_names[d.weekday()]})" for d in dates]
+        
         # Display price table
         price_data = pd.DataFrame({
-            'Date': [d.strftime('%A, %b %d') for d in dates],
+            'Date': date_labels,
             'Price Per Passenger': [f"${p:.2f}" for p in price_per_passenger],
             'Total Price': [f"${p:.2f}" for p in total_prices]
         })
@@ -319,12 +327,8 @@ def main():
     st.title("✈️ Flight Price Predictor")
     st.write("Get price predictions for flights over the next 7 days and find the best time to buy!")
     
-    # Load the model
+    # Load the model - only attempt to load the existing file
     model = load_model()
-    
-    if isinstance(model, DummyModel):
-        st.warning("⚠️ Using fallback prediction mode. The model could not be loaded properly.")
-        st.info("Predictions will be simulated and may not reflect actual price trends.")
     
     # Tab for input and results
     tabs = st.tabs(["Search Flights", "About"])
@@ -340,12 +344,13 @@ def main():
     with tabs[1]:
         st.header("About this App")
         st.write("""
-        This app uses a machine learning model to predict flight prices over the next 7 days based on historical data.
+        This app uses the XGBoost machine learning model to predict flight prices over the next 7 days based on historical data.
         
         **How it works:**
         1. Enter your flight details including origin, destination, date, and current price
-        2. Our model predicts how prices might change over the next week
-        3. We recommend the best day to purchase your ticket
+        2. Our XGBoost model predicts how prices might change over the next week using recursive forecasting
+        3. Each day's prediction becomes the input for the next day's prediction
+        4. We recommend the best day to purchase your ticket based on the lowest predicted price
         
         **Note:** Predictions are based on historical patterns and should be used as guidance only.
         Actual prices may vary due to many factors outside the model's scope.
