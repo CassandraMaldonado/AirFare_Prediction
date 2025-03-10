@@ -15,19 +15,48 @@ st.set_page_config(
 # Load the XGBoost model
 @st.cache_resource
 def load_model():
-    """Load the XGBoost model"""
-    model_path = 'xg_boost_model_compressed.pkl'
+    """Load the model with multiple fallback methods"""
+    model_path = 'model/xg_boost_model_compressed.pkl'
     if not os.path.exists(model_path):
         st.error(f"Model file {model_path} not found.")
         return None
     
     try:
+        # Method 1: Standard pickle
         with open(model_path, 'rb') as file:
             model = pickle.load(file)
         return model
-    except Exception as e:
-        st.error(f"Error loading model: {str(e)}")
-        return None
+    except Exception as e1:
+        st.warning(f"First loading attempt failed: {str(e1)}")
+        
+        try:
+            # Method 2: Try cPickle
+            import _pickle as cPickle
+            with open(model_path, 'rb') as file:
+                model = cPickle.load(file)
+            return model
+        except Exception as e2:
+            st.warning(f"Second loading attempt failed: {str(e2)}")
+            
+            # Method 3: Create a dummy model for testing
+            st.warning("Using fallback prediction mode (no model)")
+            return DummyModel()
+
+# Fallback model class that mimics XGBoost interface
+class DummyModel:
+    """Dummy model that provides random predictions when real model fails to load"""
+    def predict(self, X):
+        """Generate slightly random prices based on current price"""
+        # Get the current price from the input
+        if 'price' in X.columns:
+            base_price = X['price'].values[0]
+        else:
+            base_price = 500
+            
+        # Return a list with one prediction (5-10% price change)
+        import random
+        change = (random.random() * 0.05 + 0.95)  # 5-10% reduction
+        return np.array([base_price * change])
 
 def collect_inputs():
     """
@@ -106,7 +135,7 @@ def collect_inputs():
 
 def preprocess_inputs(user_inputs):
     """
-    Preprocess user inputs for XGBoost model prediction.
+    Preprocess user inputs for model prediction.
     
     Args:
         user_inputs (dict): Raw user inputs
@@ -132,7 +161,10 @@ def preprocess_inputs(user_inputs):
     input_df['days_to_flight'] = (input_df['date'] - datetime.now().date()).dt.days
     
     # One-hot encode categorical variables
-    input_df = pd.get_dummies(input_df, columns=['origin', 'destination', 'cabin_class'], drop_first=True)
+    for column in ['origin', 'destination', 'cabin_class']:
+        dummies = pd.get_dummies(input_df[column], prefix=column)
+        input_df = pd.concat([input_df, dummies], axis=1)
+        input_df.drop(column, axis=1, inplace=True)
     
     # Drop date column as it's not needed for prediction
     input_df = input_df.drop(['date'], axis=1)
@@ -144,7 +176,7 @@ def predict_prices_recursive(model, features_df, days=7):
     Predict flight prices recursively for the next n days
     
     Args:
-        model: Trained XGBoost model
+        model: Trained XGBoost model or dummy model
         features_df (pd.DataFrame): Current flight features
         days (int): Number of days to predict
         
@@ -158,17 +190,31 @@ def predict_prices_recursive(model, features_df, days=7):
     
     for i in range(days):
         # Update date-related features for the next day
-        df['days_to_flight'] = df['days_to_flight'] - 1
-        df['day_of_week'] = (df['day_of_week'] + 1) % 7
-        df['day_of_month'] = df['day_of_month'] + 1
+        if 'days_to_flight' in df.columns:
+            df['days_to_flight'] = df['days_to_flight'] - 1
         
-        # Handle month boundaries
-        if df['day_of_month'].values[0] > 28:
-            df['day_of_month'] = 1
-            df['month'] = df['month'] % 12 + 1
+        if 'day_of_week' in df.columns:
+            df['day_of_week'] = (df['day_of_week'] + 1) % 7
+        
+        if 'day_of_month' in df.columns:
+            df['day_of_month'] = df['day_of_month'] + 1
+            # Handle month boundaries
+            if df['day_of_month'].values[0] > 28:
+                df['day_of_month'] = 1
+                if 'month' in df.columns:
+                    df['month'] = df['month'] % 12 + 1
         
         # Predict the next day's price
-        next_price = model.predict(df)[0]
+        try:
+            next_price = model.predict(df)[0]
+        except Exception as e:
+            st.error(f"Prediction error: {e}")
+            # Fallback to simple logic: 2-4% price decrease
+            import random
+            current_price = df['price'].values[0]
+            change_factor = 1 - (random.random() * 0.02 + 0.02)  # 2-4% reduction
+            next_price = current_price * change_factor
+        
         predictions.append(next_price)
         
         # Update the price for the next iteration
@@ -178,14 +224,14 @@ def predict_prices_recursive(model, features_df, days=7):
 
 def display_results(model, user_inputs):
     """
-    Display flight price prediction results using the XGBoost model.
+    Display flight price prediction results.
     
     Args:
-        model: The trained XGBoost model
+        model: The trained model or dummy model
         user_inputs: User input dictionary
     """
     if model is None:
-        st.error("❌ Model not loaded. Please check if the XGBoost model file exists.")
+        st.error("❌ Model not loaded. Please check if the model file exists.")
         return
     
     st.title("✈️ Flight Price Predictions")
@@ -206,18 +252,21 @@ def display_results(model, user_inputs):
         st.write(f"**Current Price:** ${user_inputs['current_price']:.2f}")
     
     # Process inputs for model prediction
-    processed_inputs = preprocess_inputs(user_inputs)
-    
-    # Make recursive predictions
     try:
+        processed_inputs = preprocess_inputs(user_inputs)
+        
+        with st.expander("Show processed features"):
+            st.dataframe(processed_inputs)
+        
+        # Make recursive predictions
         predictions = predict_prices_recursive(model, processed_inputs, days=7)
         
         # Create dates for each prediction
         dates = [(user_inputs['departure_date'] + timedelta(days=i+1)) for i in range(len(predictions))]
         
         # Convert prices to account for passengers
-        price_per_passenger = [price for price in predictions]
-        total_prices = [price * user_inputs['passengers'] for price in predictions]
+        price_per_passenger = [float(price) for price in predictions]
+        total_prices = [price * user_inputs['passengers'] for price in price_per_passenger]
         
         # Find best day to buy
         best_day_index = np.argmin(price_per_passenger)
@@ -273,6 +322,10 @@ def main():
     # Load the model
     model = load_model()
     
+    if isinstance(model, DummyModel):
+        st.warning("⚠️ Using fallback prediction mode. The model could not be loaded properly.")
+        st.info("Predictions will be simulated and may not reflect actual price trends.")
+    
     # Tab for input and results
     tabs = st.tabs(["Search Flights", "About"])
     
@@ -287,7 +340,7 @@ def main():
     with tabs[1]:
         st.header("About this App")
         st.write("""
-        This app uses an XGBoost machine learning model to predict flight prices over the next 7 days based on historical data.
+        This app uses a machine learning model to predict flight prices over the next 7 days based on historical data.
         
         **How it works:**
         1. Enter your flight details including origin, destination, date, and current price
