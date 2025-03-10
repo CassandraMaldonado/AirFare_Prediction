@@ -16,7 +16,7 @@ st.set_page_config(
 @st.cache_resource
 def load_model():
     """Load the XGBoost model"""
-    model_path = 'model/xg_boost_model_compressed.pkl'
+    model_path = 'xg_boost_model_compressed.pkl'
     if not os.path.exists(model_path):
         st.error(f"Model file {model_path} not found.")
         return None
