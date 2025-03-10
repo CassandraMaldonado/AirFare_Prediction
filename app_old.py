@@ -1,10 +1,7 @@
-pip install matplotlib
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
-import os
 from datetime import datetime, timedelta
 
 # Configure page
@@ -14,12 +11,8 @@ st.set_page_config(
     layout="wide"
 )
 
-# Import custom modules - comment these out if they don't exist yet
-# from models import FlightPricePredictor
-# from utils import preprocess_flight_data, predict_future_prices, load_flight_data
-
 # Define a simple price predictor model
-class FlightPricePredictor:
+class SimpleFlightPricePredictor:
     def __init__(self):
         # This is a placeholder for the actual model
         pass
@@ -30,6 +23,8 @@ class FlightPricePredictor:
         price = current_price
         
         # Generate some random price fluctuations for demo
+        # Use a seed for reproducible results
+        np.random.seed(42)
         for _ in range(days):
             # Random price change between -5% and +5%
             change = np.random.uniform(-0.05, 0.05)
@@ -40,6 +35,8 @@ class FlightPricePredictor:
 
 # Function to create sample flight data
 def create_sample_flights():
+    # Set seed for reproducible results
+    np.random.seed(42)
     origins = ['NYC', 'LAX', 'CHI', 'MIA', 'SFO']
     destinations = ['LON', 'PAR', 'TOK', 'SYD', 'BER']
     
@@ -78,7 +75,7 @@ if 'predictions' not in st.session_state:
 # Function to predict prices
 def predict_prices(flight):
     """Generate price predictions for the next 7 days"""
-    model = FlightPricePredictor()
+    model = SimpleFlightPricePredictor()
     current_price = flight['price']
     
     # Predict prices for next 7 days
@@ -136,23 +133,34 @@ def show_input_page():
     with col2:
         st.header("Add Custom Flight")
         
+        # Create list of airport codes for dropdown
+        airport_codes = ['NYC', 'LAX', 'CHI', 'MIA', 'SFO', 'LON', 'PAR', 'TOK', 'SYD', 'BER', 
+                        'DFW', 'ATL', 'DEN', 'SEA', 'JFK', 'ORD', 'LHR', 'CDG', 'FRA', 'DXB']
+        
         with st.form("flight_form"):
-            origin = st.text_input("Origin (airport code)", max_chars=3)
-            destination = st.text_input("Destination (airport code)", max_chars=3)
+            origin = st.selectbox("Origin", options=airport_codes, index=0)
+            destination = st.selectbox("Destination", options=airport_codes, index=5)
             date = st.date_input("Date", min_value=datetime.now())
             time = st.time_input("Time")
-            price = st.number_input("Current Price ($)", min_value=50.0, max_value=5000.0, value=500.0)
+            
+            # Generate a random price based on distance for demonstration
+            def calculate_demo_price(orig, dest):
+                # Simple demo price generator
+                base_price = 300
+                # Add some randomness based on origin and destination
+                price_factor = (ord(orig[0]) + ord(dest[0])) % 10 + 1
+                return round(base_price * price_factor, 2)
             
             submit = st.form_submit_button("Predict Prices")
             
             if submit:
                 # Create flight data
                 flight = {
-                    'origin': origin.upper(),
-                    'destination': destination.upper(),
+                    'origin': origin,
+                    'destination': destination,
                     'date': date.strftime('%Y-%m-%d'),
                     'time': time.strftime('%H:%M'),
-                    'price': price
+                    'price': calculate_demo_price(origin, destination)
                 }
                 
                 # Add to flights dataframe
@@ -176,7 +184,7 @@ def show_results_page():
     # Back button
     if st.button("← Back to Flights"):
         back_to_input()
-        st.experimental_rerun()
+        st.rerun()
     
     # Flight details
     st.header("Flight Details")
