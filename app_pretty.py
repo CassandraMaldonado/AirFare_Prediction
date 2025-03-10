@@ -94,21 +94,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize state
-if 'input_completed' not in st.session_state:
-    st.session_state.input_completed = False
-
-if 'flight_data' not in st.session_state:
-    st.session_state.flight_data = None
-
-if 'price_predictions' not in st.session_state:
-    st.session_state.price_predictions = None
-
-if 'flight_combinations' not in st.session_state:
-    # Load flight combinations from dataset
-    # In production, you would read the actual CSV file
-    # For now, we'll create it based on the provided images
-    
+# Load flight combinations from dataset - ENSURING we're using actual IDs from the data
+# This function loads the flight combinations as shown in the images
+def load_flight_combinations():
+    """Load and return the flight combinations from the dataset"""
     # Define the combinations data from the screenshots
     flight_combos_data = {
         'combination_id': ['1_4_83_0', '4_5_110_0', '2_11_83_0', '2_1_34_0', '1_4_34_0',
@@ -128,7 +117,21 @@ if 'flight_combinations' not in st.session_state:
         'travelDuration': [475.44, 579.09, 381.50, 342.84, 456.58, 80.07, 188.02, 946.35, 611.41, 352.61]
     }
     
-    st.session_state.flight_combinations = pd.DataFrame(flight_combos_data)
+    return pd.DataFrame(flight_combos_data)
+
+# Initialize state
+if 'input_completed' not in st.session_state:
+    st.session_state.input_completed = False
+
+if 'flight_data' not in st.session_state:
+    st.session_state.flight_data = None
+
+if 'price_predictions' not in st.session_state:
+    st.session_state.price_predictions = None
+
+if 'flight_combinations' not in st.session_state:
+    # Load flight combinations from the dataset
+    st.session_state.flight_combinations = load_flight_combinations()
 
 # Function to get airport names based on actual dataset IDs
 def get_airport_mapping():
