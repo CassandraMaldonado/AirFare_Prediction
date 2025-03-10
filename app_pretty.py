@@ -371,8 +371,13 @@ else:
         # Format columns
         display_data['formatted_day'] = display_data['day']
         display_data['formatted_price'] = display_data['price'].apply(lambda x: f"${x:.2f}")
+        
+        # Fix the syntax error by avoiding nested f-strings
         display_data['formatted_change'] = display_data['change'].apply(
-            lambda x: f"<span style='color:{'red' if x > 0 else 'green'};'>{'+" if x > 0 else ''}{x:.1f}%</span>"
+            lambda x: "<span style='color:{}'>{}%</span>".format(
+                'red' if x > 0 else 'green',
+                f"+{x:.1f}" if x > 0 else f"{x:.1f}"
+            )
         )
         
         # Create styled dataframe
