@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
-import os
 from datetime import datetime, timedelta
 
 # Configure page
@@ -13,12 +11,8 @@ st.set_page_config(
     layout="wide"
 )
 
-# Import custom modules - comment these out if they don't exist yet
-# from models import FlightPricePredictor
-# from utils import preprocess_flight_data, predict_future_prices, load_flight_data
-
 # Define a simple price predictor model
-class FlightPricePredictor:
+class SimpleFlightPricePredictor:
     def __init__(self):
         # This is a placeholder for the actual model
         pass
@@ -29,6 +23,8 @@ class FlightPricePredictor:
         price = current_price
         
         # Generate some random price fluctuations for demo
+        # Use a seed for reproducible results
+        np.random.seed(42)
         for _ in range(days):
             # Random price change between -5% and +5%
             change = np.random.uniform(-0.05, 0.05)
@@ -39,6 +35,8 @@ class FlightPricePredictor:
 
 # Function to create sample flight data
 def create_sample_flights():
+    # Set seed for reproducible results
+    np.random.seed(42)
     origins = ['NYC', 'LAX', 'CHI', 'MIA', 'SFO']
     destinations = ['LON', 'PAR', 'TOK', 'SYD', 'BER']
     
@@ -77,7 +75,7 @@ if 'predictions' not in st.session_state:
 # Function to predict prices
 def predict_prices(flight):
     """Generate price predictions for the next 7 days"""
-    model = FlightPricePredictor()
+    model = SimpleFlightPricePredictor()
     current_price = flight['price']
     
     # Predict prices for next 7 days
