@@ -1,145 +1,182 @@
-from flask import Flask, render_template, request, jsonify
-import os
-import numpy as np
+import streamlit as st
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
-import torch
-from models import FlightPricePredictor
-from utils import preprocess_flight_data, predict_future_prices, load_flight_data
 
-app = Flask(__name__)
+# Set page title
+st.set_page_config(page_title="Flight Price Predictor", page_icon="✈️")
 
-# Set up device
-device = (
-    torch.device("mps") if torch.backends.mps.is_available() else
-    torch.device("cuda") if torch.cuda.is_available() else
-    torch.device("cpu")
-)
+# Initialize state
+if 'input_completed' not in st.session_state:
+    st.session_state.input_completed = False
 
-# Load the pre-trained model
-model_path = 'model/flight_price_model.pth'
-MODEL = None
+if 'flight_data' not in st.session_state:
+    st.session_state.flight_data = None
 
-def load_model():
-    global MODEL
-    if not os.path.exists(model_path):
-        print(f"Model file {model_path} not found. Please run train.py first.")
-        return False
+if 'price_predictions' not in st.session_state:
+    st.session_state.price_predictions = None
+
+# Airport codes
+AIRPORTS = {
+    'NYC': 'New York',
+    'LAX': 'Los Angeles',
+    'CHI': 'Chicago',
+    'MIA': 'Miami',
+    'SFO': 'San Francisco',
+    'LON': 'London',
+    'PAR': 'Paris',
+    'TOK': 'Tokyo',
+    'SYD': 'Sydney',
+    'BER': 'Berlin'
+}
+
+# Simple price predictor function
+def predict_prices(origin, destination, base_price):
+    """Generate simple price predictions"""
+    # Set seed based on inputs for consistent results
+    np.random.seed(sum(ord(c) for c in origin + destination))
     
-    MODEL = FlightPricePredictor().to(device)
-    MODEL.load_state_dict(torch.load(model_path, map_location=device))
-    MODEL.eval()
-    print("Model loaded successfully!")
-    return True
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    if MODEL is None and not load_model():
-        return jsonify({
-            'error': 'Model not loaded. Please train the model first.'
-        }), 500
+    # Generate prices for 7 days
+    prices = []
+    current_price = base_price
+    for _ in range(7):
+        # Random fluctuation
+        change = np.random.uniform(-0.05, 0.05)
+        current_price = current_price * (1 + change)
+        prices.append(round(current_price, 2))
     
-    try:
-        # Get form data
-        data = request.json
-        origin = data.get('origin')
-        destination = data.get('destination')
-        date_str = data.get('date')
-        time_str = data.get('time')
-        current_price = float(data.get('price', 500))  # Default if not provided
-        
-        # Create flight data dictionary
-        flight_data = {
-            'origin': origin,
-            'destination': destination,
-            'date': date_str,
-            'time': time_str,
-            'price': current_price
-        }
-        
-        # Create a DataFrame with the flight data
-        df = pd.DataFrame([flight_data])
-        
-        # Add mock price history for demonstration
-        # In a real app, you'd retrieve historical data from a database
-        price_history = []
-        price = current_price
-        for i in range(5):
-            price = price * np.random.uniform(0.98, 1.02)  # Small random variation
-            price_history.append(round(price, 2))
-        
-        for i, price in enumerate(reversed(price_history)):
-            df[f'price_t-{i+1}'] = price
-        
-        # Preprocess the data
-        processed_data = preprocess_flight_data(df)
-        processed_flight = processed_data.iloc[0]
-        
-        # Predict future prices
-        future_prices = predict_future_prices(MODEL, processed_flight, days=7)
-        
-        # Denormalize predictions (assuming mean=500, std=100 for demo)
-        price_mean = 500
-        price_std = 100
-        normalized_predictions = [round(price * price_std + price_mean, 2) for price in future_prices]
-        
-        # Find the lowest price day
-        lowest_price = min(normalized_predictions)
-        best_day = normalized_predictions.index(lowest_price)
-        
-        # Create dates for results
-        dates = [(datetime.strptime(date_str, '%Y-%m-%d') + timedelta(days=i+1)).strftime('%Y-%m-%d') 
-                 for i in range(len(normalized_predictions))]
-        
-        # Calculate savings
-        savings = current_price - lowest_price
-        savings_percent = (savings / current_price) * 100
-        
-        # Prepare response
-        result = {
-            'flight': {
-                'origin': origin,
-                'destination': destination,
-                'date': date_str,
-                'time': time_str
-            },
-            'current_price': current_price,
-            'predictions': [
-                {'date': date, 'price': price} 
-                for date, price in zip(dates, normalized_predictions)
-            ],
-            'best_buy': {
-                'date': dates[best_day],
-                'day': best_day + 1,
-                'price': lowest_price,
-                'savings': round(savings, 2),
-                'savings_percent': round(savings_percent, 2)
-            }
-        }
-        
-        return jsonify(result)
+    # Generate dates
+    start_date = datetime.now()
+    dates = [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
     
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/flights', methods=['GET'])
-def get_flights():
-    try:
-        # Load sample flight data
-        df = load_flight_data('flight_data.csv')
-        
-        # Return only necessary columns
-        flights = df[['origin', 'destination', 'date', 'time', 'price']].to_dict('records')
-        return jsonify(flights)
+    # Create DataFrame
+    df = pd.DataFrame({
+        'date': dates,
+        'price': prices
+    })
     
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return df
 
-if __name__ == '__main__':
-    # Try to load the model at startup
-    load_model()
-    app.run(debug=True)
+# Function to reset app
+def reset_app():
+    st.session_state.input_completed = False
+    st.session_state.flight_data = None
+    st.session_state.price_predictions = None
+
+# Main app logic
+if not st.session_state.input_completed:
+    # Input page
+    st.title("Flight Price Predictor")
+    
+    # Flight details form
+    st.header("Enter Flight Details")
+    
+    with st.form("flight_form"):
+        # Origin and destination selection
+        col1, col2 = st.columns(2)
+        with col1:
+            origin = st.selectbox("Origin", options=list(AIRPORTS.keys()), 
+                                format_func=lambda x: f"{x} - {AIRPORTS[x]}")
+        with col2:
+            destination = st.selectbox("Destination", options=list(AIRPORTS.keys()), 
+                                     format_func=lambda x: f"{x} - {AIRPORTS[x]}",
+                                     index=1)
+        
+        # Date and time
+        date = st.date_input("Travel Date", value=datetime.now() + timedelta(days=30), 
+                           min_value=datetime.now())
+        time = st.time_input("Departure Time", value=datetime.strptime("10:00", "%H:%M").time())
+        
+        # Submit button
+        submitted = st.form_submit_button("Find Best Time to Buy")
+        
+        if submitted:
+            if origin == destination:
+                st.error("Origin and destination cannot be the same!")
+            else:
+                # Generate base price
+                base_price = 300 + abs(ord(origin[0]) - ord(destination[0])) * 50
+                
+                # Store flight data
+                st.session_state.flight_data = {
+                    "origin": origin,
+                    "origin_name": AIRPORTS[origin],
+                    "destination": destination,
+                    "destination_name": AIRPORTS[destination],
+                    "date": date.strftime('%Y-%m-%d'),
+                    "time": time.strftime('%H:%M'),
+                    "base_price": base_price
+                }
+                
+                # Generate predictions
+                st.session_state.price_predictions = predict_prices(
+                    origin, destination, base_price
+                )
+                
+                # Mark input as completed
+                st.session_state.input_completed = True
+                
+                # Force refresh
+                st.rerun()
+
+else:
+    # Results page
+    flight = st.session_state.flight_data
+    predictions = st.session_state.price_predictions
+    
+    # Back button
+    if st.button("← New Search"):
+        reset_app()
+        st.rerun()
+    
+    st.title("Flight Price Prediction")
+    
+    # Flight details card
+    st.markdown("### Flight Details")
+    st.markdown(f"""
+    **{flight['origin']} ({flight['origin_name']})** → **{flight['destination']} ({flight['destination_name']})**  
+    **Date:** {flight['date']}  
+    **Time:** {flight['time']}  
+    **Current Price:** ${flight['base_price']:.2f}
+    """)
+    
+    # Find best day to buy
+    min_price_idx = predictions['price'].idxmin()
+    min_price = predictions.iloc[min_price_idx]
+    
+    # Calculate savings
+    savings = flight['base_price'] - min_price['price']
+    savings_percent = (savings / flight['base_price']) * 100
+    
+    # Display prediction results
+    st.markdown("### Price Prediction Results")
+    
+    if savings > 0:
+        st.success(f"""
+        **Best day to buy:** {min_price['date']}  
+        **Best price:** ${min_price['price']:.2f}  
+        **Potential savings:** ${savings:.2f} ({savings_percent:.1f}%)
+        """)
+    else:
+        st.warning("The current price is the best price. Consider buying now!")
+    
+    # Simple chart using Streamlit
+    st.markdown("### Price Trend")
+    
+    # Add current price to chart data
+    chart_data = pd.DataFrame({
+        'Date': ['Current'] + predictions['date'].tolist(),
+        'Price': [flight['base_price']] + predictions['price'].tolist()
+    })
+    
+    st.line_chart(chart_data.set_index('Date')['Price'])
+    
+    # Price table
+    st.markdown("### Daily Prices")
+    
+    # Format table
+    display_data = predictions.copy()
+    display_data['price'] = display_data['price'].apply(lambda x: f"${x:.2f}")
+    
+    # Display as table
+    st.table(display_data.rename(columns={'date': 'Date', 'price': 'Price'}))
