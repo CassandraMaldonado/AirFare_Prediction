@@ -184,7 +184,7 @@ def show_results_page():
     # Back button
     if st.button("← Back to Flights"):
         back_to_input()
-        st.experimental_rerun()
+        st.rerun()
     
     # Flight details
     st.header("Flight Details")
