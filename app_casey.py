@@ -7,198 +7,113 @@ from datetime import datetime, timedelta
 # Configure page
 st.set_page_config(
     page_title="Flight Price Predictor",
-    page_icon="✈️",
-    layout="wide"
+    page_icon="✈️"
 )
 
-# Define a simple price predictor model
-class SimpleFlightPricePredictor:
-    def __init__(self):
-        # This is a placeholder for the actual model
-        pass
-        
-    def predict(self, current_price, days=7):
-        """Simple price prediction for demo purposes"""
-        predictions = []
-        price = current_price
-        
-        # Generate some random price fluctuations for demo
-        # Use a seed for reproducible results
-        np.random.seed(42)
-        for _ in range(days):
-            # Random price change between -5% and +5%
-            change = np.random.uniform(-0.05, 0.05)
-            price = price * (1 + change)
-            predictions.append(price)
-            
-        return predictions
-
-# Function to create sample flight data
-def create_sample_flights():
-    # Set seed for reproducible results
-    np.random.seed(42)
-    origins = ['NYC', 'LAX', 'CHI', 'MIA', 'SFO']
-    destinations = ['LON', 'PAR', 'TOK', 'SYD', 'BER']
-    
-    flights = []
-    for i in range(10):
-        origin = np.random.choice(origins)
-        destination = np.random.choice(destinations)
-        if origin != destination:
-            date = (datetime.now() + timedelta(days=np.random.randint(7, 60))).strftime('%Y-%m-%d')
-            time = f"{np.random.randint(0, 24):02d}:{np.random.randint(0, 60):02d}"
-            price = round(np.random.uniform(300, 1200), 2)
-            
-            flights.append({
-                'origin': origin,
-                'destination': destination,
-                'date': date,
-                'time': time,
-                'price': price
-            })
-    
-    return pd.DataFrame(flights)
-
-# Initialize session state
+# Initialize session state variables if they don't exist
 if 'page' not in st.session_state:
     st.session_state.page = "input"
-    
-if 'flights' not in st.session_state:
-    st.session_state.flights = create_sample_flights()
-    
-if 'selected_flight' not in st.session_state:
-    st.session_state.selected_flight = None
-    
 if 'predictions' not in st.session_state:
     st.session_state.predictions = None
+if 'selected_flight' not in st.session_state:
+    st.session_state.selected_flight = None
 
-# Function to predict prices
-def predict_prices(flight):
-    """Generate price predictions for the next 7 days"""
-    model = SimpleFlightPricePredictor()
-    current_price = flight['price']
+# Function to predict prices (simplified)
+def predict_prices(origin, destination, date, time):
+    """Generate simple price predictions for the next 7 days"""
+    # Generate a base price based on origin and destination
+    base_price = 500 + (ord(origin[0]) + ord(destination[0])) % 200
     
-    # Predict prices for next 7 days
-    prices = model.predict(current_price, days=7)
+    # Set seed for reproducible results
+    np.random.seed(int(ord(origin[0]) + ord(destination[0])))
     
-    # Create dates for predictions
-    start_date = datetime.strptime(flight['date'], '%Y-%m-%d')
-    dates = [(start_date - timedelta(days=7-i)).strftime('%Y-%m-%d') for i in range(7)]
+    # Generate prices for 7 days
+    prices = []
+    current_price = base_price
+    for i in range(7):
+        # Random fluctuation between -5% to +5%
+        change = np.random.uniform(-0.05, 0.05)
+        current_price = current_price * (1 + change)
+        prices.append(round(current_price, 2))
     
-    # Create prediction dataframe
+    # Generate dates
+    start_date = datetime.now()
+    dates = [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+    
+    # Create DataFrame with predictions
     predictions = pd.DataFrame({
         'date': dates,
         'price': prices
     })
     
-    return predictions
+    return predictions, base_price
 
-# Function to select a flight
-def select_flight(index):
-    st.session_state.selected_flight = st.session_state.flights.iloc[index]
-    st.session_state.predictions = predict_prices(st.session_state.selected_flight)
+# Define navigation functions
+def show_prediction_page(origin, destination, date, time):
     st.session_state.page = "results"
+    predictions, base_price = predict_prices(origin, destination, date, time)
+    st.session_state.predictions = predictions
+    st.session_state.selected_flight = {
+        'origin': origin,
+        'destination': destination,
+        'date': date,
+        'time': time,
+        'price': base_price
+    }
 
-# Function to return to input page
 def back_to_input():
     st.session_state.page = "input"
-    st.session_state.selected_flight = None
-    st.session_state.predictions = None
 
-# Input page
-def show_input_page():
+# Airport codes
+airport_codes = ['NYC', 'LAX', 'CHI', 'MIA', 'SFO', 'LON', 'PAR', 'TOK', 'SYD', 'BER', 
+                'DFW', 'ATL', 'DEN', 'SEA', 'JFK', 'ORD', 'LHR', 'CDG', 'FRA', 'DXB']
+
+# Main app logic
+if st.session_state.page == "input":
+    # Input Page
     st.title("✈️ Flight Price Predictor")
     
-    col1, col2 = st.columns([2, 1])
+    # Flight selection form
+    st.header("Enter Flight Details")
+    
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.header("Select a Flight")
-        
-        # Display available flights
-        for i, flight in st.session_state.flights.iterrows():
-            with st.container():
-                col_info, col_price, col_action = st.columns([3, 1, 1])
-                
-                with col_info:
-                    st.write(f"**{flight['origin']} → {flight['destination']}**")
-                    st.write(f"Date: {flight['date']} at {flight['time']}")
-                
-                with col_price:
-                    st.write(f"**${flight['price']:.2f}**")
-                
-                with col_action:
-                    if st.button("Select", key=f"select_{i}"):
-                        select_flight(i)
+        origin = st.selectbox("Origin", options=airport_codes, index=0)
     
     with col2:
-        st.header("Add Custom Flight")
-        
-        # Create list of airport codes for dropdown
-        airport_codes = ['NYC', 'LAX', 'CHI', 'MIA', 'SFO', 'LON', 'PAR', 'TOK', 'SYD', 'BER', 
-                        'DFW', 'ATL', 'DEN', 'SEA', 'JFK', 'ORD', 'LHR', 'CDG', 'FRA', 'DXB']
-        
-        with st.form("flight_form"):
-            origin = st.selectbox("Origin", options=airport_codes, index=0)
-            destination = st.selectbox("Destination", options=airport_codes, index=5)
-            date = st.date_input("Date", min_value=datetime.now())
-            time = st.time_input("Time")
-            
-            # Generate a random price based on distance for demonstration
-            def calculate_demo_price(orig, dest):
-                # Simple demo price generator
-                base_price = 300
-                # Add some randomness based on origin and destination
-                price_factor = (ord(orig[0]) + ord(dest[0])) % 10 + 1
-                return round(base_price * price_factor, 2)
-            
-            submit = st.form_submit_button("Predict Prices")
-            
-            if submit:
-                # Create flight data
-                flight = {
-                    'origin': origin,
-                    'destination': destination,
-                    'date': date.strftime('%Y-%m-%d'),
-                    'time': time.strftime('%H:%M'),
-                    'price': calculate_demo_price(origin, destination)
-                }
-                
-                # Add to flights dataframe
-                st.session_state.flights = pd.concat([
-                    st.session_state.flights, 
-                    pd.DataFrame([flight])
-                ], ignore_index=True)
-                
-                # Select this flight
-                st.session_state.selected_flight = flight
-                st.session_state.predictions = predict_prices(flight)
-                st.session_state.page = "results"
+        destination = st.selectbox("Destination", options=airport_codes, index=5, 
+                                 key="dest_select")
+    
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        date = st.date_input("Date", value=datetime.now() + timedelta(days=30))
+    
+    with col4:
+        time = st.time_input("Time", value=datetime.strptime("12:00", "%H:%M").time())
+    
+    # Submit button
+    if st.button("Predict Prices"):
+        show_prediction_page(origin, destination, date.strftime('%Y-%m-%d'), 
+                           time.strftime('%H:%M'))
 
-# Results page
-def show_results_page():
+else:
+    # Results Page
     flight = st.session_state.selected_flight
     predictions = st.session_state.predictions
     
     st.title("✈️ Flight Price Prediction Results")
     
     # Back button
-    if st.button("← Back to Flights"):
+    if st.button("← Back to Flight Selection"):
         back_to_input()
-        st.rerun()
     
     # Flight details
     st.header("Flight Details")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.write(f"**From:** {flight['origin']} **To:** {flight['destination']}")
-        st.write(f"**Date:** {flight['date']} **Time:** {flight['time']}")
-    
-    with col2:
-        st.write(f"**Current Price:** ${flight['price']:.2f}")
-    
-    # Price predictions
-    st.header("Price Predictions")
+    st.write(f"**From:** {flight['origin']} **To:** {flight['destination']}")
+    st.write(f"**Date:** {flight['date']} **Time:** {flight['time']}")
+    st.write(f"**Current Price:** ${flight['price']:.2f}")
     
     # Find best price
     min_price_idx = predictions['price'].idxmin()
@@ -208,6 +123,7 @@ def show_results_page():
     savings_percent = (savings / flight['price']) * 100
     
     # Display chart
+    st.header("Price Predictions")
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(predictions['date'], predictions['price'], marker='o', linestyle='-', color='blue')
     ax.axhline(y=flight['price'], color='gray', linestyle='--', label='Current Price')
@@ -226,7 +142,7 @@ def show_results_page():
     st.pyplot(fig)
     
     # Best time to buy
-    st.subheader("Best Time to Buy")
+    st.header("Best Time to Buy")
     st.success(f"The best time to buy is on **{min_price['date']}** at **${min_price['price']:.2f}**")
     
     if savings > 0:
@@ -235,48 +151,10 @@ def show_results_page():
         st.write("The current price is the best price. Consider buying now!")
     
     # Price prediction table
-    st.subheader("Daily Price Predictions")
+    st.header("Daily Price Predictions")
     
-    # Add current price to table
-    full_predictions = pd.DataFrame([{
-        'date': 'Current',
-        'price': flight['price'],
-        'change': 0.0
-    }])
+    # Format the prediction data for display
+    display_predictions = predictions.copy()
+    display_predictions['formatted_price'] = display_predictions['price'].apply(lambda x: f"${x:.2f}")
     
-    # Add predicted prices with change
-    for i, row in predictions.iterrows():
-        prev_price = flight['price'] if i == 0 else predictions.iloc[i-1]['price']
-        change = (row['price'] - prev_price) / prev_price * 100
-        
-        full_predictions = pd.concat([
-            full_predictions,
-            pd.DataFrame([{
-                'date': row['date'],
-                'price': row['price'],
-                'change': change
-            }])
-        ], ignore_index=True)
-    
-    # Format the table
-    formatted_predictions = full_predictions.copy()
-    formatted_predictions['price'] = formatted_predictions['price'].apply(lambda x: f"${x:.2f}")
-    formatted_predictions['change'] = formatted_predictions['change'].apply(
-        lambda x: f"+{x:.2f}%" if x > 0 else f"{x:.2f}%"
-    )
-    
-    st.dataframe(
-        formatted_predictions,
-        column_config={
-            "date": "Date",
-            "price": "Price",
-            "change": "Change from Previous"
-        },
-        hide_index=True
-    )
-
-# Main app logic - show the appropriate page
-if st.session_state.page == "input":
-    show_input_page()
-elif st.session_state.page == "results":
-    show_results_page()
+    st.table(display_predictions[['date', 'formatted_price']])
