@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
-import joblib
+import pickle
 from datetime import datetime, timedelta
 
 # Set page configuration
@@ -22,7 +22,8 @@ def load_model():
         return None
     
     try:
-        model = joblib.load(model_path)
+        with open(model_path, 'rb') as file:
+            model = pickle.load(file)
         return model
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
