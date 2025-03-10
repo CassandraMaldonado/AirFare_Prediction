@@ -130,10 +130,9 @@ if 'flight_combinations' not in st.session_state:
     
     st.session_state.flight_combinations = pd.DataFrame(flight_combos_data)
 
-# Map airport codes to user-friendly names
-# We'll create a mapping based on the data we have
-def generate_airport_names():
-    """Generate airport names from the flight combination data"""
+# Function to get airport names based on actual dataset IDs
+def get_airport_mapping():
+    """Get all airport IDs from the flight combinations data"""
     combos = st.session_state.flight_combinations
     
     # Extract unique airports
@@ -141,29 +140,12 @@ def generate_airport_names():
     destination_airports = combos['destinationAirport'].unique()
     all_airports = np.unique(np.concatenate([starting_airports, destination_airports]))
     
-    # Create a mapping
+    # Create a mapping of airport ID to name
     airport_map = {}
     for airport in all_airports:
-        # Use a placeholder name based on the ID
-        airport_map[str(airport)] = f"Airport {airport}"
+        airport_map[str(int(airport))] = f"Airport {int(airport)}"
     
     return airport_map
-
-# Generate airline names based on the data
-def generate_airline_names():
-    """Generate airline names from the flight combination data"""
-    combos = st.session_state.flight_combinations
-    
-    # Extract unique airlines
-    airlines = combos['airlineCode'].unique()
-    
-    # Create a mapping
-    airline_map = {}
-    for airline in airlines:
-        # Use a placeholder name based on the ID
-        airline_map[str(airline)] = f"Airline {airline}"
-    
-    return airline_map
 
 # Load price prediction model (in a real app, you would load your XGBoost model here)
 def load_prediction_model():
