@@ -142,7 +142,7 @@ def get_flights():
 if __name__ == '__main__':
     # Try to load the model at startup
     load_model()
-    app.run(debug=True)earch"):
+    app.run(debug=True)
         st.session_state.page = "input"
         st.rerun()
         
