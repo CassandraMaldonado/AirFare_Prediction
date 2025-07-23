@@ -30,34 +30,34 @@ Base fare has the strongest correlation with total fare
 
 Seat availability shows minimal impact on pricing, suggesting other factors dominate
 
-🪑 Seat Availability Impact
+4. Seat Availability Impact
 Ticket prices remain variable regardless of how many seats are left
 
 Availability alone doesn’t drive price behavior
 
-🔀 Non-Stop vs. Connecting Flights
+5. Non-Stop vs. Connecting Flights
 Non-stop flights are consistently more expensive
 
 Connecting flights display higher pricing variability
 
-🧳 Basic Economy vs. Regular Economy
+6. Basic Economy vs. Regular Economy
 Basic Economy offers more consistent, lower prices
 
 Regular Economy has a wider spread due to flexible options and seat upgrades
 
-📏 Fare vs. Travel Distance
+7. Fare vs. Travel Distance
 Longer routes generally cost more
 
 Some short routes are unusually expensive, likely due to monopolies or last-minute pricing
 
-🧠 Modeling Approach
+## Modeling Approach
 Traditional Time Series Models
 ARIMA & SARIMA: Poor generalization
 
 Prophet: Dropped due to low accuracy
 
-Machine Learning Models
-✅ Random Forest (Best performer)
+- Machine Learning Models
+Random Forest (Best performer)
 
 Decision Tree
 
@@ -66,20 +66,8 @@ XGBoost
 Deep Learning Model
 RNN-LSTM: Underperformed due to pricing noise and variance
 
-📂 Dataset
+## Dataset
 Source: Dil Wong (2022)
 
 Kaggle: Flight Prices Dataset
-
-🚀 Future Work
-Incorporate real-time flight data APIs
-
-Add route-specific predictions
-
-Improve seasonality detection with ensemble modeling
-
-Build alert systems for fare drops
-
-📎 License
-MIT License. Feel free to use, modify, and share under terms of open use.
 
