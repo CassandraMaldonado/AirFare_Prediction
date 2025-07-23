@@ -3,7 +3,7 @@
 Live App: https://airfarecast-timeseriesfp.streamlit.app
 
 ## Project Overview
-AirfareCast is a data science project aimed at analyzing airline pricing trends and forecasting future ticket prices using time-series and machine learning models. The goal is to provide travelers with insights that enable smarter, more cost-effective booking decisions by exploring the dynamics of fare pricing.
+Repo aimed at analyzing airline pricing trends and forecasting future ticket prices using time-series and machine learning models. The goal is to provide travelers with insights that enable smarter, more cost-effective booking decisions by exploring the dynamics of fare pricing.
 
 🎯 Objectives
 Analyze fare trends over time to identify patterns and anomalies
