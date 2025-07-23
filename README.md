@@ -5,14 +5,14 @@ Live App: https://airfarecast-timeseriesfp.streamlit.app
 ## Project Overview
 Repo aimed at analyzing airline pricing trends and forecasting future ticket prices using time-series and machine learning models. The goal is to provide travelers with insights that enable smarter, more cost-effective booking decisions by exploring the dynamics of fare pricing.
 
-🎯 Objectives
-Analyze fare trends over time to identify patterns and anomalies
+## Objectives
+- Analyze fare trends over time to identify patterns and anomalies.
 
-Understand the impact of key factors like seat availability, flight length, and fare class
+- Understand the impact of key factors like seat availability, flight length, and fare class
 
-Build predictive models for future ticket pricing
+- Build predictive models for future ticket pricing
 
-Generate booking insights to help users make informed travel decisions
+- Generate booking insights to help users make informed travel decisions
 
 📊 Exploratory Data Analysis (EDA)
 🕒 Fare Trends Over Time
