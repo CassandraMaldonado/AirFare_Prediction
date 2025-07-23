@@ -8,24 +8,24 @@ Repo aimed at analyzing airline pricing trends and forecasting future ticket pri
 ## Objectives
 - Analyze fare trends over time to identify patterns and anomalies.
 
-- Understand the impact of key factors like seat availability, flight length, and fare class
+- Understand the impact of key factors like seat availability, flight length and fare class.
 
-- Build predictive models for future ticket pricing
+- Build predictive models for future ticket pricing.
 
-- Generate booking insights to help users make informed travel decisions
+- Generate booking insights to help users make informed travel decisions.
 
-📊 Exploratory Data Analysis (EDA)
-🕒 Fare Trends Over Time
+## EDA
+1. Fare Trends Over Time:
 Ticket prices fluctuate significantly over time, often dipping slightly before departure
 
 Sharp spikes reflect seasonal demand and booking surges
 
-💰 Total Fare Distribution
+2. Total Fare Distribution:
 Most fares are under $1,000
 
 Outliers above $8,000 are linked to premium cabin bookings
 
-🔗 Correlation Analysis
+3. Correlation Analysis:
 Base fare has the strongest correlation with total fare
 
 Seat availability shows minimal impact on pricing, suggesting other factors dominate
