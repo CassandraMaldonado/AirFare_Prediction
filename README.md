@@ -67,7 +67,5 @@ Deep Learning Model
 RNN-LSTM: Underperformed due to pricing noise and variance
 
 ## Dataset
-Source: Dil Wong (2022)
-
-Kaggle: Flight Prices Dataset
+Kaggle: Flight Prices Dataset from Dil Wong (2022) 'https://www.kaggle.com/datasets/dilwong/flightprices'.
 
