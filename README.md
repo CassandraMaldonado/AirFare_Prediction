@@ -56,9 +56,8 @@ Some short routes are unusually expensive, likely due to monopolies or last-minu
  - Prophet dropped due to low accuracy.
 
 ### Machine Learning Models
-Random Forest (Best performer)
-
-Decision Tree
+- Random Forest (Best performer).
+- Decision Tree.
 
 XGBoost
 
