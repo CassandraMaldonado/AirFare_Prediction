@@ -58,8 +58,7 @@ Some short routes are unusually expensive, likely due to monopolies or last-minu
 ### Machine Learning Models
 - Random Forest (Best performer).
 - Decision Tree.
-
-XGBoost
+- XGBoost.
 
 Deep Learning Model
 RNN-LSTM: Underperformed due to pricing noise and variance
