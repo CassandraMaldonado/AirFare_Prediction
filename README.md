@@ -60,8 +60,8 @@ Some short routes are unusually expensive, likely due to monopolies or last-minu
 - Decision Tree.
 - XGBoost.
 
-Deep Learning Model
-RNN-LSTM: Underperformed due to pricing noise and variance
+### Deep Learning Model
+- RNN-LSTM underperformed due to pricing noise and variance.
 
 ## Dataset
 Kaggle: Flight Prices Dataset from Dil Wong (2022) https://www.kaggle.com/datasets/dilwong/flightprices.
