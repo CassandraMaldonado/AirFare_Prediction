@@ -51,12 +51,11 @@ Longer routes generally cost more
 Some short routes are unusually expensive, likely due to monopolies or last-minute pricing
 
 ## Modeling Approach
-Traditional Time Series Models
-ARIMA & SARIMA: Poor generalization
+### Traditional Time Series Models
+ - ARIMA & SARIMA provided poor generalization.
+ - Prophet dropped due to low accuracy.
 
-Prophet: Dropped due to low accuracy
-
-- Machine Learning Models
+### Machine Learning Models
 Random Forest (Best performer)
 
 Decision Tree
