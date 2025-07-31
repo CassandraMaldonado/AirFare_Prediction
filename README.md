@@ -21,10 +21,7 @@ Repo aimed at analyzing airline pricing trends and forecasting future ticket pri
 
 3. Correlation Analysis: Base fare has the strongest correlation with total fare, seat availability shows minimal impact on pricing, suggesting other factors dominate.
 
-4. Seat Availability Impact
-Ticket prices remain variable regardless of how many seats are left
-
-Availability alone doesn’t drive price behavior
+4. Seat Availability Impact: Ticket prices remain variable regardless of how many seats are left. Availability alone doesn’t drive price behavior.
 
 5. Non-Stop vs. Connecting Flights
 Non-stop flights are consistently more expensive
