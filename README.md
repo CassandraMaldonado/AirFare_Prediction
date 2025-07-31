@@ -23,20 +23,11 @@ Repo aimed at analyzing airline pricing trends and forecasting future ticket pri
 
 4. Seat Availability Impact: Ticket prices remain variable regardless of how many seats are left. Availability alone doesn’t drive price behavior.
 
-5. Non-Stop vs. Connecting Flights
-Non-stop flights are consistently more expensive
+5. Non-Stop vs. Connecting Flights: Non-stop flights are consistently more expensive. Connecting flights display higher pricing variability.
 
-Connecting flights display higher pricing variability
+6. Basic Economy vs. Regular Economy: Basic Economy offers more consistent, lower prices. Regular Economy has a wider spread due to flexible options and seat upgrades.
 
-6. Basic Economy vs. Regular Economy
-Basic Economy offers more consistent, lower prices
-
-Regular Economy has a wider spread due to flexible options and seat upgrades
-
-7. Fare vs. Travel Distance
-Longer routes generally cost more
-
-Some short routes are unusually expensive, likely due to monopolies or last-minute pricing
+7. Fare vs. Travel Distance: Longer routes generally cost more. Some short routes are unusually expensive, likely due to monopolies or last-minute pricing.
 
 ## Modeling Approach
 ### Traditional Time Series Models
