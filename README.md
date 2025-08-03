@@ -30,6 +30,7 @@ Repo aimed at analyzing airline pricing trends and forecasting future ticket pri
 7. Fare vs. Travel Distance: Longer routes generally cost more. Some short routes are unusually expensive, likely due to monopolies or last-minute pricing.
 
 ## Modeling Approach
+
 ### Traditional Time Series Models
  - ARIMA & SARIMA provided poor generalization.
  - Prophet dropped due to low accuracy.
@@ -43,5 +44,5 @@ Repo aimed at analyzing airline pricing trends and forecasting future ticket pri
 - RNN-LSTM underperformed due to pricing noise and variance.
 
 ## Dataset
-Kaggle: Flight Prices Dataset from Dil Wong (2022) https://www.kaggle.com/datasets/dilwong/flightprices.
+Kaggle: Flight Prices Dataset from Dil Wong (2022) https://www.kaggle.com/datasets/dilwong/flightprices. 
 
