@@ -44,5 +44,5 @@ Repo aimed at analyzing airline pricing trends and forecasting future ticket pri
 - RNN-LSTM underperformed due to pricing noise and variance.
 
 ## Dataset
-Kaggle: Flight Prices Dataset from Dil Wong (2022) https://www.kaggle.com/datasets/dilwong/flightprices. 
+Kaggle: Flight Prices Dataset from Dil Wong (2022) https://www.kaggle.com/datasets/dilwong/flightprices.
 
